@@ -2,18 +2,28 @@ var express = require('express');
 var router = express.Router();
 var url = require('url');
 var hydra = require('../services/hydra')
+var api = require('../services/api')
 
-// Sets up csrf protection
-var csrf = require('csurf');
-var csrfProtection = csrf({ cookie: true });
-
-router.get('/', csrfProtection, function (req, res, next) {
+router.get('/', function (req, res, next) {
   // Parses the URL query
   var query = url.parse(req.url, true).query;
 
   // The challenge is used to fetch information about the login request from ORY Hydra.
   var challenge = query.login_challenge;
 
+  /*api.getLogin(challenge)
+    .then(function (response) {
+      if (response.indexOf("/login") > -1) {
+        res.render('login', {
+          challenge: challenge,
+        });
+      } else {
+        res.redirect(response);
+      }
+    })
+    .catch(function (error) {
+      next(error);
+    });*/
   hydra.getLoginRequest(challenge)
   // This will be called if the HTTP request was successful
     .then(function (response) {
@@ -36,7 +46,6 @@ router.get('/', csrfProtection, function (req, res, next) {
 
       // If authentication can't be skipped we MUST show the login UI.
       res.render('login', {
-        csrfToken: req.csrfToken(),
         challenge: challenge,
       });
     })
@@ -46,18 +55,34 @@ router.get('/', csrfProtection, function (req, res, next) {
     });
 });
 
-router.post('/', csrfProtection, function (req, res, next) {
+router.post('/', function (req, res, next) {
   // The challenge is now a hidden input field, so let's take it from the request body instead
   var challenge = req.body.challenge;
-
+  var remember = Boolean(req.body.remember);
+  /*api.postLogin(challenge, remember)
+    .then(function (response) {
+      if (response == "error") {
+        res.render('login', {
+    
+          challenge: challenge,
+    
+          error: 'The username / password combination is not correct'
+        });
+        return;
+      } else {
+          console.log("Login was sucessful!");
+          res.redirect(response);
+      }
+    })
+    .catch(function (error) {
+      next(error)
+    });*/
   // Let's check if the user provided valid credentials. Of course, you'd use a database or some third-party service
   // for this!
   if (!(req.body.email === 'foo@bar.com' && req.body.password === 'foobar')) {
     // Looks like the user provided invalid credentials, let's show the ui again...
 
     res.render('login', {
-      csrfToken: req.csrfToken(),
-
       challenge: challenge,
 
       error: 'The username / password combination is not correct'
@@ -82,6 +107,7 @@ router.post('/', csrfProtection, function (req, res, next) {
     // acr: '0',
   })
     .then(function (response) {
+      console.log(JSON.stringify(response));
       // All we need to do now is to redirect the user back to hydra!
       res.redirect(response.redirect_to);
     })

@@ -3,11 +3,7 @@ var router = express.Router();
 var url = require('url');
 var hydra = require('../services/hydra')
 
-// Sets up csrf protection
-var csrf = require('csurf');
-var csrfProtection = csrf({ cookie: true });
-
-router.get('/', csrfProtection, function (req, res, next) {
+router.get('/', function (req, res, next) {
   // Parses the URL query
   var query = url.parse(req.url, true).query;
 
@@ -48,7 +44,6 @@ router.get('/', csrfProtection, function (req, res, next) {
 
       // If consent can't be skipped we MUST show the consent UI.
       res.render('consent', {
-        csrfToken: req.csrfToken(),
         challenge: challenge,
         // We have a bunch of data available from the response, check out the API docs to find what these values mean
         // and what additional data you have available.
@@ -63,7 +58,7 @@ router.get('/', csrfProtection, function (req, res, next) {
     });
 });
 
-router.post('/', csrfProtection, function (req, res, next) {
+router.post('/', function (req, res, next) {
   // The challenge is now a hidden input field, so let's take it from the request body instead
   var challenge = req.body.challenge;
 
